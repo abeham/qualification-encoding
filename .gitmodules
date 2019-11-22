@@ -1,0 +1,3 @@
+[submodule "trunk"]
+	path = trunk
+	url = https://github.com/HeuristicLab/HeuristicLab.git
