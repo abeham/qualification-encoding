@@ -1,3 +1,15 @@
+
+
+#################
+## Custom
+#################
+
+trunk/.nuget/*
+trunk/Google.ProtocolBuffers-2.4.1.473.dll
+trunk/ProtoGen.exe
+trunk/protoc.exe
+trunk/HeuristicLab.Problems.ExternalEvaluation/3.4/Protos/ExternalEvaluationMessages.cs
+
 #################
 ## Eclipse
 #################
