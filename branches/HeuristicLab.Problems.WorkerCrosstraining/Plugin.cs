@@ -21,11 +21,11 @@
 
 using HeuristicLab.PluginInfrastructure;
 
-namespace SimpleModel {
-  [Plugin("HeuristicLab.Problems.WorkerCrosstraining", "1.0")]
+namespace HeuristicLab.Problems.WorkerCrosstraining {
+  [Plugin("HeuristicLab.Problems.WorkerCrosstraining", "3.3.16.17468")]
   [PluginFile("HeuristicLab.Problems.WorkerCrosstraining.dll", PluginFileType.Assembly)]
   [PluginDependency("HeuristicLab.Attic", "1.0")]
-  [PluginDependency("HeuristicLab.SimSharp", "3.1.1")]
+  [PluginDependency("HeuristicLab.SimSharp", "3.3.1")]
   [PluginDependency("HeuristicLab.Analysis", "3.3")]
   [PluginDependency("HeuristicLab.Collections", "3.3")]
   [PluginDependency("HeuristicLab.Common", "3.3")]

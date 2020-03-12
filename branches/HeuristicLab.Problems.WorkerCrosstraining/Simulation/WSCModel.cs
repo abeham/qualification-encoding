@@ -26,7 +26,7 @@ using HeuristicLab.Common;
 using SimSharp;
 
 namespace HeuristicLab.Problems.WorkerCrosstraining {
-  public class WSCModel {
+  public class SimulationModel {
     // Configuration
     public readonly double UtilizationTarget;
     public readonly double OrderAmount;
@@ -93,7 +93,7 @@ namespace HeuristicLab.Problems.WorkerCrosstraining {
 
     private Dictionary<Process, Tuple<double, double>> _backorderedJobs;
 
-    public WSCModel(double util, double orderAmount, double pr, double cr, double lcf,
+    public SimulationModel(double util, double orderAmount, double pr, double cr, double lcf,
       double dueDateFix, double dueDateVar, double dueDateCV, double procTimeCV, double interarrivalCV,
       IWorkforce workforce, DispatchStrategy dispatch, int rseed = 0, double observationTime = 3600,
       double warmupTime = 600) {
@@ -198,31 +198,11 @@ namespace HeuristicLab.Problems.WorkerCrosstraining {
       ServiceLevel.Reset();
     }
 
-    protected static readonly double NormalMagicConst = 4 * Math.Exp(-0.5) / Math.Sqrt(2.0);
-    private static double GetNormal(IRandom rand, double mu, double sigma) {
-      double z, zz, u1, u2;
-      do {
-        u1 = rand.NextDouble();
-        u2 = 1 - rand.NextDouble();
-        z = NormalMagicConst * (u1 - 0.5) / u2;
-        zz = z * z / 4.0;
-      } while (zz > -Math.Log(u2));
-      return mu + z * sigma;
-    }
-
-    private static double GetLogNormal(IRandom rand, double mu, double sigma) {
-      if (sigma == 0) return mu;
-      var alpha = Math.Sqrt(mu * sigma) / mu;
-      var sigmaln = Math.Sqrt(Math.Log(1 + (alpha * alpha)));
-      var muln = Math.Log(mu) - 0.5 * sigmaln * sigmaln;
-      return Math.Exp(GetNormal(rand, muln, sigmaln));
-    }
-
     private IEnumerable<Event> Demand(int[] route) {
       while (true) {
-        yield return _env.TimeoutD(GetLogNormal(_randDemand, InterArrivalMean, CV_Interarrival));
+        yield return _env.TimeoutLogNormal2D(_randDemand, InterArrivalMean, InterArrivalMean * CV_Interarrival);
         //var due = _env.NowD + DueDateHorizonFix + _env.RandExponential(DueDateHorizonVar);
-        var due = _env.NowD + DueDateHorizonFix + GetLogNormal(_randDueDate, DueDateHorizonVar, CV_DueDate);
+        var due = _env.NowD + DueDateHorizonFix + _env.RandLogNormal2(_randDueDate, DueDateHorizonVar, DueDateHorizonVar * CV_DueDate);
         _env.Process(Job(route, due));
       }
     }
@@ -282,7 +262,7 @@ namespace HeuristicLab.Problems.WorkerCrosstraining {
         WorkerUtilizations[worker].UpdateTo(1);
 
         //var procTime = _env.RandExponential(_processTimes * _orderAmount);
-        var procTime = GetLogNormal(_randProc, ProcessingTimeStations * OrderAmount, CV_ProcessingTime);
+        var procTime = _env.RandLogNormal2(_randProc, ProcessingTimeStations * OrderAmount, ProcessingTimeStations * OrderAmount * CV_ProcessingTime);
         var workerTime = procTime * ProcessingRatioWorker;
         var machineTime = procTime - workerTime;
 

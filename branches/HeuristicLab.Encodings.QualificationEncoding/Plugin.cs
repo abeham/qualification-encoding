@@ -25,7 +25,7 @@ namespace HeuristicLab.Encodings.QualificationEncoding {
   /// <summary>
   /// Plugin class for HeuristicLab.Encodings.QualificationEncoding plugin.
   /// </summary>
-  [Plugin("HeuristicLab.Encodings.QualificationEncoding", "3.3.15.204")]
+  [Plugin("HeuristicLab.Encodings.QualificationEncoding", "3.3.16.17468")]
   [PluginFile("HeuristicLab.Encodings.QualificationEncoding-3.3.dll", PluginFileType.Assembly)]
   [PluginDependency("HeuristicLab.Attic", "1.0")]
   [PluginDependency("HeuristicLab.Collections", "3.3")]

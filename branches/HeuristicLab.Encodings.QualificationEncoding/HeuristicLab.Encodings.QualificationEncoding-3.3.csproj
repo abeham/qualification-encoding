@@ -138,8 +138,6 @@
     <Compile Include="QualificationHelpers.cs" />
     <Compile Include="QualificationManipulator.cs" />
     <None Include="HeuristicLab.snk" />
-    <None Include="Properties\AssemblyInfo.cs.frame" />
-    <None Include="Plugin.cs.frame" />
     <Compile Include="Creators\RandomQualificationCreator.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -147,12 +145,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>set Path=%25Path%25;$(ProjectDir);$(SolutionDir)
-set ProjectDir=$(ProjectDir)
-set SolutionDir=$(SolutionDir)
-set Outdir=$(Outdir)
-
-call PreBuildEvent.cmd
-</PreBuildEvent>
+    <PreBuildEvent>
+    </PreBuildEvent>
   </PropertyGroup>
 </Project>

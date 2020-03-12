@@ -255,9 +255,10 @@ namespace HeuristicLab.Problems.WorkerCrosstraining {
       var matrix = BinaryQualifiedWorkforce.FromVector(vector, Encoding.Qualifications);
       var avg = 0.0;
       for (var r = 0; r < Repetitions; r++) {
-        var sim = new WSCModel(Utilization, OrderAmount, PersonellRatio, ChangeTimeRatio, LineChangeFactor,
-          1, 100, 0, 0.25, 1.0,
-          matrix, DispatchStrategy, r, ObservationTime, WarmupTime);
+        var sim = new SimulationModel(Utilization, OrderAmount, PersonellRatio, ChangeTimeRatio, LineChangeFactor,
+          dueDateFix: 1, dueDateVar: 100, dueDateCV: 0, procTimeCV: 0.25, interarrivalCV: 1.0,
+          workforce: matrix, dispatch: DispatchStrategy,
+          rseed: r, observationTime: ObservationTime, warmupTime: WarmupTime);
         sim.Run();
 
         switch (Objective) {

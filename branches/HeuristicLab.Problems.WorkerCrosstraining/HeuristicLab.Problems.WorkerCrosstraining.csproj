@@ -113,9 +113,9 @@
       <HintPath>$(SolutionDir)\..\trunk\bin\HeuristicLab.Random-3.3.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="SimSharp-3.1.1, Version=3.1.1.0, Culture=neutral, PublicKeyToken=ba48961d6f65dcec, processorArchitecture=MSIL">
+    <Reference Include="SimSharp-3.3.1, Version=3.3.1.0, Culture=neutral, PublicKeyToken=4222a9c6c8b27052, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(SolutionDir)\..\trunk\bin\SimSharp-3.1.1.dll</HintPath>
+      <HintPath>..\..\trunk\bin\SimSharp-3.3.1.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
