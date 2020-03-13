@@ -22,11 +22,9 @@
 using System;
 using System.Linq;
 using HEAL.Attic;
-using HeuristicLab.Analysis;
 using HeuristicLab.Common;
 using HeuristicLab.Core;
 using HeuristicLab.Data;
-using HeuristicLab.Encodings.BinaryVectorEncoding;
 using HeuristicLab.Encodings.QualificationEncoding;
 using HeuristicLab.Optimization;
 using HeuristicLab.Parameters;
@@ -281,53 +279,27 @@ namespace HeuristicLab.Problems.WorkerCrosstraining {
       base.Analyze(individuals, qualities, results, random);
 
       int length = Encoding.Qualifications * Encoding.Workers;
+      var solutions = individuals.Select(x => x.Qualification()).ToArray();
+      var fronts = DominationCalculator<Qualification>.CalculateAllParetoFronts(solutions, qualities, Maximization, out int[] ranks);
 
-      var sp = new ScatterPlot() { Name = "Solutions" };
-      sp.VisualProperties.YAxisMaximumFixedValue = length;
-      sp.VisualProperties.YAxisMaximumAuto = false;
-      sp.VisualProperties.YAxisMinimumFixedValue = 0;
-      sp.VisualProperties.YAxisMinimumAuto = false;
+      var bestFront = new DoubleMatrix(fronts[0].Count, Maximization.Length);
+      var allFronts = new DoubleMatrix(fronts.Sum(x => x.Count), 1 + Maximization.Length);
+      bestFront.ColumnNames = new[] { Objective.ToString(), "TQ", "AQP" };
+      allFronts.ColumnNames = new[] { "Front" }.Concat(bestFront.ColumnNames);
 
-      var row = new ScatterPlotDataRow() { Name = "Objective vs Qualifications" };
-      row.VisualProperties.PointSize = 5;
-      var pareto = new ScatterPlotDataRow() { Name = "Pareto Front" };
-      pareto.VisualProperties.PointSize = 7;
-
-      var best = new double[length + 1];
-      var bestVec = new BinaryVector[length + 1];
-      for (var i = 0; i < qualities.Length; i++) {
-        var vec = new BinaryVector(individuals[i].Qualification(Encoding.Name).ToBoolArray());
-
-        row.Points.Add(new Point2D<double>(qualities[i][0], qualities[i][1], vec));
-        var qual = (int)qualities[i][1];
-        if (bestVec[qual] == null || best[qual] > qualities[i][0]) {
-          bestVec[qual] = vec;
-          best[qual] = qualities[i][0];
+      var row = 0;
+      for (var f = 0; f < fronts.Count; f++) {
+        for (var i = 0; i < fronts[f].Count; i++) {
+          allFronts[row, 0] = f + 1;
+          for (var m = 0; m < Maximization.Length; m++) {
+            if (f == 0) bestFront[i, m] = fronts[f][i].Item2[m];
+            allFronts[row, m+1] = fronts[f][i].Item2[m];
+          }
+          row++;
         }
       }
-
-      var sorted = bestVec.Select((v, i) => new { Qual = i, Vec = v, Fit = best[i] }).Where(x => x.Vec != null).OrderBy(x => x.Fit);
-      var minQual = -1;
-      var minX = best.Min();
-      var maxX = minX;
-      foreach (var s in sorted) {
-        if (minQual >= 0 && s.Qual >= minQual)
-          continue;
-        pareto.Points.Add(new Point2D<double>(s.Fit, s.Qual, s.Vec));
-        minQual = s.Qual;
-        if (s.Qual >= Workers && maxX < s.Fit) maxX = s.Fit;
-      }
-
-      sp.Rows.Add(row);
-      sp.Rows.Add(pareto);
-
-      sp.VisualProperties.XAxisMaximumFixedValue = maxX;
-      sp.VisualProperties.XAxisMaximumAuto = false;
-      sp.VisualProperties.XAxisMinimumFixedValue = minX;
-      sp.VisualProperties.XAxisMinimumAuto = false;
-
-      if (!results.ContainsKey("Scatterplot")) results.Add(new Result("Scatterplot", sp));
-      else results["Scatterplot"].Value = sp;
+      results.AddOrUpdateResult("Best Pareto Front", bestFront);
+      results.AddOrUpdateResult("All Pareto Fronts", allFronts);
     }
   }
 }
