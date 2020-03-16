@@ -227,3 +227,5 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 *.nupkg
+
+!**/Mono.Cecil-0.9.5/Symbols/**
