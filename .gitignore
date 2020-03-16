@@ -229,3 +229,4 @@ pip-log.txt
 *.nupkg
 
 !**/Mono.Cecil-0.9.5/Symbols/**
+!**/HeuristicLab.OrTools-7.0.0/Google.OrTools.pdb
