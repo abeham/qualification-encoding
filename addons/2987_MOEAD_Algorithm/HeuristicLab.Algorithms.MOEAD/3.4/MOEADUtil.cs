@@ -19,11 +19,11 @@
  */
 #endregion
 
-using HeuristicLab.Common;
-using HeuristicLab.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HeuristicLab.Common;
+using HeuristicLab.Core;
 
 namespace HeuristicLab.Algorithms.MOEAD {
   public static class MOEADUtil {
@@ -94,7 +94,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
       var idealPoint = new double[2];
       foreach (var solution in solutionList) {
         // update ideal point
-        idealPoint.UpdateIdeal(solution.Qualities);
+        UpdateIdeal(idealPoint, solution.Qualities);
       }
 
       // Select the best solution for each weight vector
@@ -172,7 +172,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
       return maxFun;
     }
 
-    public static void UpdateIdeal(this double[] idealPoint, double[] point) {
+    public static void UpdateIdeal(double[] idealPoint, double[] point) {
       for (int i = 0; i < point.Length; ++i) {
         if (double.IsInfinity(point[i]) || double.IsNaN(point[i])) {
           continue;
@@ -184,7 +184,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
       }
     }
 
-    public static void UpdateNadir(this double[] nadirPoint, double[] point) {
+    public static void UpdateNadir(double[] nadirPoint, double[] point) {
       for (int i = 0; i < point.Length; ++i) {
         if (double.IsInfinity(point[i]) || double.IsNaN(point[i])) {
           continue;
@@ -196,15 +196,15 @@ namespace HeuristicLab.Algorithms.MOEAD {
       }
     }
 
-    public static void UpdateIdeal(this double[] idealPoint, IList<IMOEADSolution> solutions) {
+    public static void UpdateIdeal(double[] idealPoint, IList<IMOEADSolution> solutions) {
       foreach (var s in solutions) {
-        idealPoint.UpdateIdeal(s.Qualities);
+        UpdateIdeal(idealPoint, s.Qualities);
       }
     }
 
-    public static void UpdateNadir(this double[] nadirPoint, IList<IMOEADSolution> solutions) {
+    public static void UpdateNadir(double[] nadirPoint, IList<IMOEADSolution> solutions) {
       foreach (var s in solutions) {
-        nadirPoint.UpdateNadir(s.Qualities);
+        UpdateNadir(nadirPoint, s.Qualities);
       }
     }
 

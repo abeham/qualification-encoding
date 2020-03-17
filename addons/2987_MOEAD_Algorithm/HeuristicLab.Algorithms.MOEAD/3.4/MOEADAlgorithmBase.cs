@@ -19,6 +19,10 @@
  */
 #endregion
 
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using HEAL.Attic;
 using HeuristicLab.Analysis;
 using HeuristicLab.Common;
@@ -30,10 +34,6 @@ using HeuristicLab.Parameters;
 using HeuristicLab.Problems.DataAnalysis;
 using HeuristicLab.Problems.TestFunctions.MultiObjective;
 using HeuristicLab.Random;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using CancellationToken = System.Threading.CancellationToken;
 
 namespace HeuristicLab.Algorithms.MOEAD {
@@ -49,6 +49,9 @@ namespace HeuristicLab.Algorithms.MOEAD {
     // PBI  = Penalty-based boundary intersection
     // AGG  = Weighted sum
     public enum FunctionType { TCHE, PBI, AGG }
+
+    [Storable]
+    protected IRandom Random { get; set; }
 
     [Storable]
     protected double[] IdealPoint { get; set; }
@@ -102,7 +105,6 @@ namespace HeuristicLab.Algorithms.MOEAD {
     private const string MutationProbabilityParameterName = "MutationProbability";
     private const string MutatorParameterName = "Mutator";
     private const string MaximumEvaluatedSolutionsParameterName = "MaximumEvaluatedSolutions";
-    private const string RandomParameterName = "Random";
     private const string AnalyzerParameterName = "Analyzer";
     // MOEA-D parameters
     private const string NeighbourSizeParameterName = "NeighbourSize";
@@ -111,55 +113,21 @@ namespace HeuristicLab.Algorithms.MOEAD {
     private const string FunctionTypeParameterName = "FunctionType";
     private const string NormalizeObjectivesParameterName = "NormalizeObjectives";
 
-    public IValueParameter<MultiAnalyzer> AnalyzerParameter {
-      get { return (ValueParameter<MultiAnalyzer>)Parameters[AnalyzerParameterName]; }
-    }
-
-    public IConstrainedValueParameter<StringValue> FunctionTypeParameter {
-      get { return (IConstrainedValueParameter<StringValue>)Parameters[FunctionTypeParameterName]; }
-    }
-    public IFixedValueParameter<IntValue> NeighbourSizeParameter {
-      get { return (IFixedValueParameter<IntValue>)Parameters[NeighbourSizeParameterName]; }
-    }
-    public IFixedValueParameter<BoolValue> NormalizeObjectivesParameter {
-      get { return (IFixedValueParameter<BoolValue>)Parameters[NormalizeObjectivesParameterName]; }
-    }
-    public IFixedValueParameter<IntValue> MaximumNumberOfReplacedSolutionsParameter {
-      get { return (IFixedValueParameter<IntValue>)Parameters[MaximumNumberOfReplacedSolutionsParameterName]; }
-    }
-    public IFixedValueParameter<DoubleValue> NeighbourhoodSelectionProbabilityParameter {
-      get { return (IFixedValueParameter<DoubleValue>)Parameters[NeighbourhoodSelectionProbabilityParameterName]; }
-    }
-    public IFixedValueParameter<IntValue> SeedParameter {
-      get { return (IFixedValueParameter<IntValue>)Parameters[SeedParameterName]; }
-    }
-    public IFixedValueParameter<BoolValue> SetSeedRandomlyParameter {
-      get { return (IFixedValueParameter<BoolValue>)Parameters[SetSeedRandomlyParameterName]; }
-    }
-    private IValueParameter<IntValue> PopulationSizeParameter {
-      get { return (IValueParameter<IntValue>)Parameters[PopulationSizeParameterName]; }
-    }
-    private IValueParameter<IntValue> ResultPopulationSizeParameter {
-      get { return (IValueParameter<IntValue>)Parameters[ResultPopulationSizeParameterName]; }
-    }
-    public IValueParameter<PercentValue> CrossoverProbabilityParameter {
-      get { return (IValueParameter<PercentValue>)Parameters[CrossoverProbabilityParameterName]; }
-    }
-    public IConstrainedValueParameter<ICrossover> CrossoverParameter {
-      get { return (IConstrainedValueParameter<ICrossover>)Parameters[CrossoverParameterName]; }
-    }
-    public IValueParameter<PercentValue> MutationProbabilityParameter {
-      get { return (IValueParameter<PercentValue>)Parameters[MutationProbabilityParameterName]; }
-    }
-    public IConstrainedValueParameter<IManipulator> MutatorParameter {
-      get { return (IConstrainedValueParameter<IManipulator>)Parameters[MutatorParameterName]; }
-    }
-    public IValueParameter<IntValue> MaximumEvaluatedSolutionsParameter {
-      get { return (IValueParameter<IntValue>)Parameters[MaximumEvaluatedSolutionsParameterName]; }
-    }
-    public IValueParameter<IRandom> RandomParameter {
-      get { return (IValueParameter<IRandom>)Parameters[RandomParameterName]; }
-    }
+    [Storable] public IValueParameter<MultiAnalyzer> AnalyzerParameter { get; private set; }
+    [Storable] public IConstrainedValueParameter<StringValue> FunctionTypeParameter { get; private set; }
+    [Storable] public IFixedValueParameter<IntValue> NeighbourSizeParameter { get; private set; }
+    [Storable] public IFixedValueParameter<BoolValue> NormalizeObjectivesParameter { get; private set; }
+    [Storable] public IFixedValueParameter<IntValue> MaximumNumberOfReplacedSolutionsParameter { get; private set; }
+    [Storable] public IFixedValueParameter<DoubleValue> NeighbourhoodSelectionProbabilityParameter { get; private set; }
+    [Storable] public IFixedValueParameter<IntValue> SeedParameter { get; private set; }
+    [Storable] public IFixedValueParameter<BoolValue> SetSeedRandomlyParameter { get; private set; }
+    [Storable] public IValueParameter<IntValue> PopulationSizeParameter { get; private set; }
+    [Storable] public IValueParameter<IntValue> ResultPopulationSizeParameter { get; private set; }
+    [Storable] public IValueParameter<PercentValue> CrossoverProbabilityParameter { get; private set; }
+    [Storable] public IConstrainedValueParameter<ICrossover> CrossoverParameter { get; private set; }
+    [Storable] public IValueParameter<PercentValue> MutationProbabilityParameter { get; private set; }
+    [Storable] public IConstrainedValueParameter<IManipulator> MutatorParameter { get; private set; }
+    [Storable] public IValueParameter<IntValue> MaximumEvaluatedSolutionsParameter { get; private set; }
     #endregion
 
     #region parameter properties
@@ -179,25 +147,25 @@ namespace HeuristicLab.Algorithms.MOEAD {
       get { return NormalizeObjectivesParameter.Value.Value; }
       set { NormalizeObjectivesParameter.Value.Value = value; }
     }
-    public IntValue PopulationSize {
-      get { return PopulationSizeParameter.Value; }
-      set { PopulationSizeParameter.Value = value; }
+    public int PopulationSize {
+      get { return PopulationSizeParameter.Value.Value; }
+      set { PopulationSizeParameter.Value.Value = value; }
     }
-    public IntValue ResultPopulationSize {
-      get { return ResultPopulationSizeParameter.Value; }
-      set { ResultPopulationSizeParameter.Value = value; }
+    public int ResultPopulationSize {
+      get { return ResultPopulationSizeParameter.Value.Value; }
+      set { ResultPopulationSizeParameter.Value.Value = value; }
     }
-    public PercentValue CrossoverProbability {
-      get { return CrossoverProbabilityParameter.Value; }
-      set { CrossoverProbabilityParameter.Value = value; }
+    public double CrossoverProbability {
+      get { return CrossoverProbabilityParameter.Value.Value; }
+      set { CrossoverProbabilityParameter.Value.Value = value; }
     }
     public ICrossover Crossover {
       get { return CrossoverParameter.Value; }
       set { CrossoverParameter.Value = value; }
     }
-    public PercentValue MutationProbability {
-      get { return MutationProbabilityParameter.Value; }
-      set { MutationProbabilityParameter.Value = value; }
+    public double MutationProbability {
+      get { return MutationProbabilityParameter.Value.Value; }
+      set { MutationProbabilityParameter.Value.Value = value; }
     }
     public IManipulator Mutator {
       get { return MutatorParameter.Value; }
@@ -207,9 +175,9 @@ namespace HeuristicLab.Algorithms.MOEAD {
       get { return AnalyzerParameter.Value; }
       set { AnalyzerParameter.Value = value; }
     }
-    public IntValue MaximumEvaluatedSolutions {
-      get { return MaximumEvaluatedSolutionsParameter.Value; }
-      set { MaximumEvaluatedSolutionsParameter.Value = value; }
+    public int MaximumEvaluatedSolutions {
+      get { return MaximumEvaluatedSolutionsParameter.Value.Value; }
+      set { MaximumEvaluatedSolutionsParameter.Value.Value = value; }
     }
     public int NeighbourSize {
       get { return NeighbourSizeParameter.Value.Value; }
@@ -227,27 +195,25 @@ namespace HeuristicLab.Algorithms.MOEAD {
 
     #region constructors
     public MOEADAlgorithmBase() {
-      Parameters.Add(new FixedValueParameter<IntValue>(SeedParameterName, "The random seed used to initialize the new pseudo random number generator.", new IntValue(0)));
-      Parameters.Add(new FixedValueParameter<BoolValue>(SetSeedRandomlyParameterName, "True if the random seed should be set to a random value, otherwise false.", new BoolValue(true)));
-      Parameters.Add(new ValueParameter<IntValue>(PopulationSizeParameterName, "The size of the population of solutions.", new IntValue(100)));
-      Parameters.Add(new ValueParameter<IntValue>(ResultPopulationSizeParameterName, "The size of the population of solutions.", new IntValue(100)));
-      Parameters.Add(new ValueParameter<PercentValue>(CrossoverProbabilityParameterName, "The probability that the crossover operator is applied.", new PercentValue(0.9)));
-      Parameters.Add(new ConstrainedValueParameter<ICrossover>(CrossoverParameterName, "The operator used to cross solutions."));
-      Parameters.Add(new ValueParameter<PercentValue>(MutationProbabilityParameterName, "The probability that the mutation operator is applied on a solution.", new PercentValue(0.25)));
-      Parameters.Add(new ConstrainedValueParameter<IManipulator>(MutatorParameterName, "The operator used to mutate solutions."));
-      Parameters.Add(new ValueParameter<MultiAnalyzer>("Analyzer", "The operator used to analyze each generation.", new MultiAnalyzer()));
-      Parameters.Add(new ValueParameter<IntValue>(MaximumEvaluatedSolutionsParameterName, "The maximum number of evaluated solutions (approximately).", new IntValue(100_000)));
-      Parameters.Add(new ValueParameter<IRandom>(RandomParameterName, new FastRandom()));
-      Parameters.Add(new FixedValueParameter<IntValue>(NeighbourSizeParameterName, new IntValue(20)));
-      Parameters.Add(new FixedValueParameter<IntValue>(MaximumNumberOfReplacedSolutionsParameterName, new IntValue(2)));
-      Parameters.Add(new FixedValueParameter<DoubleValue>(NeighbourhoodSelectionProbabilityParameterName, new DoubleValue(0.1)));
-      Parameters.Add(new FixedValueParameter<BoolValue>(NormalizeObjectivesParameterName, new BoolValue(true)));
+      Parameters.Add(SeedParameter = new FixedValueParameter<IntValue>(SeedParameterName, "The random seed used to initialize the new pseudo random number generator.", new IntValue(0)));
+      Parameters.Add(SetSeedRandomlyParameter = new FixedValueParameter<BoolValue>(SetSeedRandomlyParameterName, "True if the random seed should be set to a random value, otherwise false.", new BoolValue(true)));
+      Parameters.Add(PopulationSizeParameter = new ValueParameter<IntValue>(PopulationSizeParameterName, "The size of the population of solutions.", new IntValue(100)));
+      Parameters.Add(ResultPopulationSizeParameter = new ValueParameter<IntValue>(ResultPopulationSizeParameterName, "The size of the population of solutions.", new IntValue(100)));
+      Parameters.Add(CrossoverProbabilityParameter = new ValueParameter<PercentValue>(CrossoverProbabilityParameterName, "The probability that the crossover operator is applied.", new PercentValue(0.9)));
+      Parameters.Add(CrossoverParameter = new ConstrainedValueParameter<ICrossover>(CrossoverParameterName, "The operator used to cross solutions."));
+      Parameters.Add(MutationProbabilityParameter = new ValueParameter<PercentValue>(MutationProbabilityParameterName, "The probability that the mutation operator is applied on a solution.", new PercentValue(0.25)));
+      Parameters.Add(MutatorParameter = new ConstrainedValueParameter<IManipulator>(MutatorParameterName, "The operator used to mutate solutions."));
+      Parameters.Add(AnalyzerParameter = new ValueParameter<MultiAnalyzer>(AnalyzerParameterName, "The operator used to analyze each generation.", new MultiAnalyzer()));
+      Parameters.Add(MaximumEvaluatedSolutionsParameter = new ValueParameter<IntValue>(MaximumEvaluatedSolutionsParameterName, "The maximum number of evaluated solutions (approximately).", new IntValue(100_000)));
+      Parameters.Add(NeighbourSizeParameter = new FixedValueParameter<IntValue>(NeighbourSizeParameterName, new IntValue(20)));
+      Parameters.Add(MaximumNumberOfReplacedSolutionsParameter = new FixedValueParameter<IntValue>(MaximumNumberOfReplacedSolutionsParameterName, new IntValue(2)));
+      Parameters.Add(NeighbourhoodSelectionProbabilityParameter = new FixedValueParameter<DoubleValue>(NeighbourhoodSelectionProbabilityParameterName, new DoubleValue(0.1)));
+      Parameters.Add(NormalizeObjectivesParameter = new FixedValueParameter<BoolValue>(NormalizeObjectivesParameterName, new BoolValue(true)));
+      Parameters.Add(FunctionTypeParameter = new ConstrainedValueParameter<StringValue>(FunctionTypeParameterName));
 
-      var functionTypeParameter = new ConstrainedValueParameter<StringValue>(FunctionTypeParameterName);
       foreach (var s in new[] { "Chebyshev", "PBI", "Weighted Sum" }) {
-        functionTypeParameter.ValidValues.Add(new StringValue(s));
+        FunctionTypeParameter.ValidValues.Add(new StringValue(s));
       }
-      Parameters.Add(functionTypeParameter);
     }
 
     protected MOEADAlgorithmBase(MOEADAlgorithmBase original, Cloner cloner) : base(original, cloner) {
@@ -284,23 +250,54 @@ namespace HeuristicLab.Algorithms.MOEAD {
       }
 
       if (original.jointPopulation != null) {
-        jointPopulation = original.jointPopulation.Select(x => cloner.Clone(x)).ToArray();
+        jointPopulation = original.jointPopulation.Select(cloner.Clone).ToArray();
       }
 
-      if (original.executionContext != null) {
-        executionContext = cloner.Clone(original.executionContext);
-      }
+      executionContext = cloner.Clone(original.executionContext);
+      globalScope = cloner.Clone(original.globalScope);
+      Random = cloner.Clone(original.Random);
 
-      if (original.globalScope != null) {
-        globalScope = cloner.Clone(original.globalScope);
-      }
+      SeedParameter = cloner.Clone(original.SeedParameter);
+      SetSeedRandomlyParameter = cloner.Clone(original.SetSeedRandomlyParameter);
+      PopulationSizeParameter = cloner.Clone(original.PopulationSizeParameter);
+      ResultPopulationSizeParameter = cloner.Clone(original.ResultPopulationSizeParameter);
+      CrossoverProbabilityParameter = cloner.Clone(original.CrossoverProbabilityParameter);
+      CrossoverParameter = cloner.Clone(original.CrossoverParameter);
+      MutationProbabilityParameter = cloner.Clone(original.MutationProbabilityParameter);
+      MutatorParameter = cloner.Clone(original.MutatorParameter);
+      AnalyzerParameter = cloner.Clone(original.AnalyzerParameter);
+      MaximumEvaluatedSolutionsParameter = cloner.Clone(original.MaximumEvaluatedSolutionsParameter);
+      NeighbourSizeParameter = cloner.Clone(original.NeighbourSizeParameter);
+      MaximumNumberOfReplacedSolutionsParameter = cloner.Clone(original.MaximumNumberOfReplacedSolutionsParameter);
+      NeighbourhoodSelectionProbabilityParameter = cloner.Clone(original.NeighbourhoodSelectionProbabilityParameter);
+      NormalizeObjectivesParameter = cloner.Clone(original.NormalizeObjectivesParameter);
+      FunctionTypeParameter = cloner.Clone(original.FunctionTypeParameter);
     }
 
 
     [StorableHook(HookType.AfterDeserialization)]
     private void AfterDeserialization() {
       if (!Parameters.ContainsKey(NormalizeObjectivesParameterName)) {
-        Parameters.Add(new FixedValueParameter<BoolValue>(NormalizeObjectivesParameterName, new BoolValue(true)));
+        Parameters.Add(NormalizeObjectivesParameter = new FixedValueParameter<BoolValue>(NormalizeObjectivesParameterName, new BoolValue(true)));
+      }
+      if (SeedParameter == null) SeedParameter = (IFixedValueParameter<IntValue>)Parameters[SeedParameterName];
+      if (SetSeedRandomlyParameter == null) SetSeedRandomlyParameter = (IFixedValueParameter<BoolValue>)Parameters[SetSeedRandomlyParameterName];
+      if (PopulationSizeParameter == null) PopulationSizeParameter = (IValueParameter<IntValue>)Parameters[PopulationSizeParameterName];
+      if (ResultPopulationSizeParameter == null) ResultPopulationSizeParameter = (IValueParameter<IntValue>)Parameters[ResultPopulationSizeParameterName];
+      if (CrossoverProbabilityParameter == null) CrossoverProbabilityParameter = (IValueParameter<PercentValue>)Parameters[CrossoverProbabilityParameterName];
+      if (CrossoverParameter == null) CrossoverParameter = (IConstrainedValueParameter<ICrossover>)Parameters[CrossoverParameterName];
+      if (MutationProbabilityParameter == null) MutationProbabilityParameter = (IValueParameter<PercentValue>)Parameters[MutationProbabilityParameterName];
+      if (MutatorParameter == null) MutatorParameter = (IConstrainedValueParameter<IManipulator>)Parameters[MutatorParameterName];
+      if (AnalyzerParameter == null) AnalyzerParameter = (IValueParameter<MultiAnalyzer>)Parameters[AnalyzerParameterName];
+      if (MaximumEvaluatedSolutionsParameter == null) MaximumEvaluatedSolutionsParameter = (IValueParameter<IntValue>)Parameters[MaximumEvaluatedSolutionsParameterName];
+      if (NeighbourSizeParameter == null) NeighbourSizeParameter = (IFixedValueParameter<IntValue>)Parameters[NeighbourSizeParameterName];
+      if (MaximumNumberOfReplacedSolutionsParameter == null) MaximumNumberOfReplacedSolutionsParameter = (IFixedValueParameter<IntValue>)Parameters[MaximumNumberOfReplacedSolutionsParameterName];
+      if (NeighbourhoodSelectionProbabilityParameter == null) NeighbourhoodSelectionProbabilityParameter = (IFixedValueParameter<DoubleValue>)Parameters[NeighbourhoodSelectionProbabilityParameterName];
+      if (NormalizeObjectivesParameter == null) NormalizeObjectivesParameter = (IFixedValueParameter<BoolValue>)Parameters[NormalizeObjectivesParameterName];
+      if (FunctionTypeParameter == null) FunctionTypeParameter = (IConstrainedValueParameter<StringValue>)Parameters[FunctionTypeParameterName];
+      if (Parameters.ContainsKey("Random")) {
+        Random = ((IValueParameter<IRandom>)Parameters["Random"]).Value;
+        Parameters.Remove("Random");
       }
     }
 
@@ -308,28 +305,27 @@ namespace HeuristicLab.Algorithms.MOEAD {
     protected MOEADAlgorithmBase(StorableConstructorFlag deserializing) : base(deserializing) { }
     #endregion
 
-    private void InitializePopulation(ExecutionContext executionContext, CancellationToken cancellationToken, IRandom random, bool[] maximization) {
+    private void InitializePopulation(CancellationToken cancellationToken, bool[] maximization) {
       var creator = Problem.SolutionCreator;
       var evaluator = Problem.Evaluator;
 
       var dimensions = maximization.Length;
-      var populationSize = PopulationSize.Value;
-      population = new IMOEADSolution[populationSize];
+      population = new IMOEADSolution[PopulationSize];
 
       var parentScope = executionContext.Scope;
       // first, create all individuals
-      for (int i = 0; i < populationSize; ++i) {
+      for (int i = 0; i < PopulationSize; ++i) {
         var childScope = new Scope(i.ToString()) { Parent = parentScope };
-        ExecuteOperation(executionContext, cancellationToken, executionContext.CreateChildOperation(creator, childScope));
+        ExecuteOperation(cancellationToken, executionContext.CreateChildOperation(creator, childScope));
         parentScope.SubScopes.Add(childScope);
       }
 
       // then, evaluate them and update qualities
-      for (int i = 0; i < populationSize; ++i) {
+      for (int i = 0; i < PopulationSize; ++i) {
         var childScope = parentScope.SubScopes[i];
-        ExecuteOperation(executionContext, cancellationToken, executionContext.CreateChildOperation(evaluator, childScope));
+        ExecuteOperation(cancellationToken, executionContext.CreateChildOperation(evaluator, childScope));
 
-        var qualities = (DoubleArray)childScope.Variables["Qualities"].Value;
+        var qualities = (DoubleArray)childScope.Variables[evaluator.QualitiesParameter.TranslatedName].Value;
         var solution = new MOEADSolution(childScope, dimensions, 0);
         for (int j = 0; j < dimensions; ++j) {
           solution.Qualities[j] = maximization[j] ? 1 - qualities[j] : qualities[j];
@@ -339,26 +335,24 @@ namespace HeuristicLab.Algorithms.MOEAD {
     }
 
     protected void InitializeAlgorithm(CancellationToken cancellationToken) {
-      var rand = RandomParameter.Value;
       if (SetSeedRandomly) Seed = RandomSeedGenerator.GetSeed();
-      rand.Reset(Seed);
+      Random = new FastRandom(Seed);
 
+      globalScope.Variables.Add(new Variable("Random", Random));
       bool[] maximization = ((BoolArray)Problem.MaximizationParameter.ActualValue).CloneAsArray();
       var dimensions = maximization.Length;
 
-      var populationSize = PopulationSize.Value;
-
-      InitializePopulation(executionContext, cancellationToken, rand, maximization);
-      InitializeUniformWeights(rand, populationSize, dimensions);
-      InitializeNeighbourHood(lambda, populationSize, NeighbourSize);
+      InitializePopulation(cancellationToken, maximization);
+      InitializeUniformWeights(dimensions);
+      InitializeNeighbourHood(lambda);
 
       //IdealPoint = Enumerable.Repeat(double.MaxValue, dimensions).ToArray();
       IdealPoint = new double[dimensions];
-      IdealPoint.UpdateIdeal(population);
+      MOEADUtil.UpdateIdeal(IdealPoint, population);
 
       NadirPoint = Enumerable.Repeat(double.MinValue, dimensions).ToArray();
       //NadirPoint = new double[dimensions];
-      NadirPoint.UpdateNadir(population);
+      MOEADUtil.UpdateNadir(NadirPoint, population);
 
       var functionTypeString = FunctionTypeParameter.Value.Value;
       switch (functionTypeString) {
@@ -373,7 +367,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
           break;
       }
 
-      evaluatedSolutions = populationSize;
+      evaluatedSolutions = PopulationSize;
     }
 
     protected override void Initialize(CancellationToken cancellationToken) {
@@ -392,16 +386,16 @@ namespace HeuristicLab.Algorithms.MOEAD {
 
     public override bool SupportsPause => true;
 
-    protected void InitializeUniformWeights(IRandom random, int populationSize, int dimensions) {
-      lambda = Enumerable.Range(0, populationSize).Select(_ => GenerateSample(random, dimensions)).ToArray();
+    protected void InitializeUniformWeights(int dimensions) {
+      lambda = Enumerable.Range(0, PopulationSize).Select(_ => GenerateSample(dimensions)).ToArray();
     }
 
     // implements random number generation from https://en.wikipedia.org/wiki/Dirichlet_distribution#Random_number_generation
-    private double[] GenerateSample(IRandom random, int dim) {
+    private double[] GenerateSample(int dim) {
       var sum = 0d;
       var sample = new double[dim];
       for (int i = 0; i < dim; ++i) {
-        sample[i] = GammaDistributedRandom.NextDouble(random, 1, 1);
+        sample[i] = GammaDistributedRandom.NextDouble(Random, 1, 1);
         sum += sample[i];
       }
       for (int i = 0; i < dim; ++i) {
@@ -410,31 +404,31 @@ namespace HeuristicLab.Algorithms.MOEAD {
       return sample;
     }
 
-    protected void InitializeNeighbourHood(double[][] lambda, int populationSize, int neighbourSize) {
-      neighbourhood = new int[populationSize][];
+    protected void InitializeNeighbourHood(double[][] lambda) {
+      neighbourhood = new int[PopulationSize][];
 
-      var x = new double[populationSize];
-      var idx = new int[populationSize];
+      var x = new double[PopulationSize];
+      var idx = new int[PopulationSize];
 
-      for (int i = 0; i < populationSize; ++i) {
-        for (int j = 0; j < populationSize; ++j) {
+      for (int i = 0; i < PopulationSize; ++i) {
+        for (int j = 0; j < PopulationSize; ++j) {
           x[j] = MOEADUtil.EuclideanDistance(lambda[i], lambda[j]);
           idx[j] = j;
         }
 
-        MOEADUtil.MinFastSort(x, idx, populationSize, neighbourSize);
+        MOEADUtil.MinFastSort(x, idx, PopulationSize, NeighbourSize);
         neighbourhood[i] = (int[])idx.Clone();
       }
     }
 
-    protected NeighborType ChooseNeighborType(IRandom random, double neighbourhoodSelectionProbability) {
-      return random.NextDouble() < neighbourhoodSelectionProbability
+    protected NeighborType ChooseNeighborType() {
+      return Random.NextDouble() < NeighbourhoodSelectionProbability
         ? NeighborType.NEIGHBOR
         : NeighborType.POPULATION;
     }
 
-    protected IList<IMOEADSolution> ParentSelection(IRandom random, int subProblemId, NeighborType neighbourType) {
-      List<int> matingPool = MatingSelection(random, subProblemId, 2, neighbourType);
+    protected IList<IMOEADSolution> ParentSelection(int subProblemId, NeighborType neighbourType) {
+      List<int> matingPool = MatingSelection(subProblemId, 2, neighbourType);
 
       var parents = new IMOEADSolution[3];
 
@@ -445,16 +439,14 @@ namespace HeuristicLab.Algorithms.MOEAD {
       return parents;
     }
 
-    protected List<int> MatingSelection(IRandom random, int subproblemId, int numberOfSolutionsToSelect, NeighborType neighbourType) {
-      int populationSize = PopulationSize.Value;
-
+    protected List<int> MatingSelection(int subproblemId, int numberOfSolutionsToSelect, NeighborType neighbourType) {
       var listOfSolutions = new List<int>(numberOfSolutionsToSelect);
 
       int neighbourSize = neighbourhood[subproblemId].Length;
       while (listOfSolutions.Count < numberOfSolutionsToSelect) {
         var selectedSolution = neighbourType == NeighborType.NEIGHBOR
-          ? neighbourhood[subproblemId][random.Next(neighbourSize)]
-          : random.Next(populationSize);
+          ? neighbourhood[subproblemId][Random.Next(neighbourSize)]
+          : Random.Next(PopulationSize);
 
         bool flag = true;
         foreach (int individualId in listOfSolutions) {
@@ -472,28 +464,28 @@ namespace HeuristicLab.Algorithms.MOEAD {
       return listOfSolutions;
     }
 
-    protected void UpdateNeighbourHood(IRandom random, IMOEADSolution individual, int subProblemId, NeighborType neighbourType, int maximumNumberOfReplacedSolutions, bool normalizeObjectives = false) {
+    protected void UpdateNeighbourHood(IMOEADSolution individual, int subProblemId, NeighborType neighbourType) {
       int replacedSolutions = 0;
       int size = neighbourType == NeighborType.NEIGHBOR ? NeighbourSize : population.Length;
 
-      foreach (var i in Enumerable.Range(0, size).Shuffle(random)) {
+      foreach (var i in Enumerable.Range(0, size).Shuffle(Random)) {
         int k = neighbourType == NeighborType.NEIGHBOR ? neighbourhood[subProblemId][i] : i;
 
-        double f1 = CalculateFitness(population[k].Qualities, lambda[k], normalizeObjectives);
-        double f2 = CalculateFitness(individual.Qualities, lambda[k], normalizeObjectives);
+        double f1 = CalculateFitness(population[k].Qualities, lambda[k]);
+        double f2 = CalculateFitness(individual.Qualities, lambda[k]);
 
         if (f2 < f1) {
           population[k] = individual;
           replacedSolutions++;
         }
 
-        if (replacedSolutions >= maximumNumberOfReplacedSolutions) {
+        if (replacedSolutions >= MaximumNumberOfReplacedSolutions) {
           return;
         }
       }
     }
 
-    private double CalculateFitness(double[] qualities, double[] lambda, bool normalizeObjectives = false) {
+    private double CalculateFitness(double[] qualities, double[] lambda) {
       int dim = qualities.Length;
       switch (functionType) {
         case FunctionType.TCHE: {
@@ -507,7 +499,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
               }
               q -= IdealPoint[n];
 
-              if (normalizeObjectives) {
+              if (NormalizeObjectives) {
                 q /= NadirPoint[n] - IdealPoint[n];
               }
 
@@ -554,25 +546,21 @@ namespace HeuristicLab.Algorithms.MOEAD {
       }
     }
 
-    public IList<IMOEADSolution> GetResult(IRandom random) {
-      var populationSize = PopulationSize.Value;
-      var resultPopulationSize = ResultPopulationSize.Value;
-
-      if (populationSize > resultPopulationSize) {
-        return MOEADUtil.GetSubsetOfEvenlyDistributedSolutions(random, population, resultPopulationSize);
+    public IList<IMOEADSolution> GetResult() {
+      if (PopulationSize > ResultPopulationSize) {
+        return MOEADUtil.GetSubsetOfEvenlyDistributedSolutions(Random, population, ResultPopulationSize);
       } else {
         return population;
       }
     }
 
-    protected void UpdateParetoFronts() {
-      var qualities = population.Select(x => Enumerable.Range(0, NadirPoint.Length).Select(i => x.Qualities[i] / NadirPoint[i]).ToArray()).ToArray();
-      var maximization = Enumerable.Repeat(false, IdealPoint.Length).ToArray(); // MOEA/D minimizes everything internally
+    protected void UpdateParetoFronts(bool[] maximization) {
+      var qualities = population.Select(x => x.Qualities).ToArray();
       var pf = DominationCalculator<IMOEADSolution>.CalculateBestParetoFront(population, qualities, maximization);
 
       var n = (int)EnumerableExtensions.BinomialCoefficient(IdealPoint.Length, 2);
       var hypervolumes = new DoubleMatrix(n == 1 ? 1 : n + 1, 2) { ColumnNames = new[] { "PF hypervolume", "PF size" } };
-      hypervolumes[0, 0] = Hypervolume.Calculate(pf.Select(x => x.Item2), Enumerable.Repeat(1d, NadirPoint.Length).ToArray(), maximization);
+      hypervolumes[0, 0] = Hypervolume.Calculate(pf.Select(x => x.Item2), NadirPoint, maximization);
       hypervolumes[0, 1] = pf.Count;
       var elementNames = new List<string>() { "Pareto Front" };
 
@@ -591,12 +579,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
         if (error != OnlineCalculatorError.None) { r = double.NaN; }
         var resultName = "Pareto Front Analysis ";
         if (!results.ContainsKey(resultName)) {
-          sp = new ScatterPlot() {
-            VisualProperties = {
-              XAxisMinimumAuto = false, XAxisMinimumFixedValue = 0d, XAxisMaximumAuto = false, XAxisMaximumFixedValue = 1d,
-              YAxisMinimumAuto = false, YAxisMinimumFixedValue = 0d, YAxisMaximumAuto = false, YAxisMaximumFixedValue = 1d
-            }
-          };
+          sp = new ScatterPlot();
           sp.Rows.Add(new ScatterPlotDataRow(resultName, "", points) { VisualProperties = { PointSize = 8 } });
           results.AddOrUpdateResult(resultName, sp);
         } else {
@@ -614,7 +597,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
           var c = combinations[i].ToArray();
 
           // calculate the hypervolume in the 2d coordinate space
-          var reference2d = new[] { 1d, 1d };
+          var reference2d = new[] { NadirPoint[c[0]], NadirPoint[c[1]] };
           var qualities2d = pf.Select(x => new[] { x.Item2[c[0]], x.Item2[c[1]] }).ToArray();
           var pf2d = DominationCalculator<IMOEADSolution>.CalculateBestParetoFront(solutions2d, qualities2d, maximization2d);
 
@@ -628,12 +611,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
           var pf2dPoints = pf2d.Select(x => new Point2D<double>(x.Item2[0], x.Item2[1]));
 
           if (!results.ContainsKey(resultName)) {
-            sp = new ScatterPlot() {
-              VisualProperties = {
-                XAxisMinimumAuto = false, XAxisMinimumFixedValue = 0d, XAxisMaximumAuto = false, XAxisMaximumFixedValue = 1d,
-                YAxisMinimumAuto = false, YAxisMinimumFixedValue = 0d, YAxisMaximumAuto = false, YAxisMaximumFixedValue = 1d
-              }
-            };
+            sp = new ScatterPlot();
             sp.Rows.Add(new ScatterPlotDataRow("Pareto Front", "", points) { VisualProperties = visualProperties });
             sp.Rows.Add(new ScatterPlotDataRow($"Pareto Front [{c[0]}, {c[1]}]", "", pf2dPoints) { VisualProperties = { PointSize = 10, Color = Color.OrangeRed } });
             results.AddOrUpdateResult(resultName, sp);
@@ -652,7 +630,7 @@ namespace HeuristicLab.Algorithms.MOEAD {
     }
 
     #region operator wiring and events
-    protected void ExecuteOperation(ExecutionContext executionContext, CancellationToken cancellationToken, IOperation operation) {
+    protected void ExecuteOperation(CancellationToken cancellationToken, IOperation operation) {
       Stack<IOperation> executionStack = new Stack<IOperation>();
       executionStack.Push(operation);
       while (executionStack.Count > 0) {
